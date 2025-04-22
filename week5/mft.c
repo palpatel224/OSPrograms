@@ -4,7 +4,6 @@ int main()
 {
     int ms, bs, nob, ef,n,tif=0;
     int i,p=0;
- 
     printf("Enter the total memory available (in Bytes) -- ");   
     scanf("%d",&ms);
     printf("Enter the block size (in Bytes) -- ");
@@ -37,5 +36,4 @@ int main()
         printf("\nMemory is Full, Remaining Processes cannot be accomodated");
         printf("\n\nTotal Internal Fragmentation is %d",tif);
         printf("\nTotal External Fragmentation is %d",ef);
- 
 }

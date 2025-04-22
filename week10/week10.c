@@ -1,208 +1,126 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
 
-#define MAX_NAME 100
-#define MAX_INPUT 150
+#define MAX_NODES 100
+#define NAME_LEN 32
+#define INDENT_STEP 2
 
- 
-typedef struct Node {
-    char name[MAX_NAME];
-    int isFile;  
-    struct Node *child;  
-    struct Node *sibling;  
-    struct Node *parent;  
-} Node;
+char names[MAX_NODES][NAME_LEN];
+int is_directory[MAX_NODES];
+int adj[MAX_NODES][MAX_NODES];
+int node_count = 0;
 
- 
-Node* createNode(const char *name, int isFile, Node* parent) {
-    Node *newNode = (Node*)malloc(sizeof(Node));
-    if (!newNode) {
-        perror("Memory allocation error");
-        exit(EXIT_FAILURE);
+int find_index(const char *name)
+{
+    for (int i = 0; i < node_count; i++)
+    {
+        if (strcmp(names[i], name) == 0)
+            return i;
     }
-    strncpy(newNode->name, name, MAX_NAME);
-    newNode->name[MAX_NAME - 1] = '\0';
-    newNode->isFile = isFile;
-    newNode->child = NULL;
-    newNode->sibling = NULL;
-    newNode->parent = parent;
-    return newNode;
+    return -1;
 }
 
- 
-void addChild(Node *parent, Node *child) {
-    if (!parent->child) {
-        parent->child = child;
-    } else {
-         
-        Node *temp = parent->child;
-        while (temp->sibling)
-            temp = temp->sibling;
-        temp->sibling = child;
-    }
-}
-
- 
-Node* findChild(Node *parent, const char *name) {
-    Node *temp = parent->child;
-    while (temp) {
-        if (strcmp(temp->name, name) == 0 && temp->isFile == 0)
-            return temp;
-        temp = temp->sibling;
-    }
-    return NULL;
-}
-
- 
-void printTree(Node *root, int level) {
-    if (!root)
-        return;
-    
-     
-    for (int i = 0; i < level; i++) {
-         
-        printf("| ");
-    }
-     
-    if (level == 0)
-        printf("%s/\n", root->name);
-    else {
-        if(root->isFile)
-            printf("|-- %s\n", root->name);
-        else
-            printf("|-- %s\n", root->name);
-    }
-    
-     
-    printTree(root->child, level + 1);
-    
-     
-    if (level > 0) {  
-        printTree(root->sibling, level);
-    }
-}
-
- 
-void freeTree(Node *root) {
-    if (!root)
-        return;
-    freeTree(root->child);
-    freeTree(root->sibling);
-    free(root);
-}
-
- 
-void printPath(Node *current) {
-    if (current == NULL) {
-        printf("/ (root not created)");
+void add_node(int parent_idx, const char *new_name, int dir_flag)
+{
+    if (node_count >= MAX_NODES)
+    {
+        printf("Error: node limit reached.\n");
         return;
     }
-    
-     
-    char path[MAX_INPUT] = "";
-    Node *temp = current;
-    
-    while (temp != NULL) {
-        char tempPath[MAX_INPUT];
-        strcpy(tempPath, temp->name);
-        strcat(tempPath, "/");
-        strcat(tempPath, path);
-        strcpy(path, tempPath);
-        temp = temp->parent;
-    }
-    
-    printf("/%s", path);
+
+    int idx = node_count++;
+    strncpy(names[idx], new_name, NAME_LEN - 1);
+    names[idx][NAME_LEN - 1] = '\0';
+    is_directory[idx] = dir_flag;
+
+    adj[parent_idx][idx] = 1;
 }
 
- 
-void processCommand(char *command, char *argument, Node **root, Node **current) {
-     
-    if (strcmp(command, "mkdir") == 0) {
-        if (*root == NULL) {
-            *root = createNode(argument, 0, NULL);
-            *current = *root;
-        } else {
-            Node *dir = createNode(argument, 0, *current);
-            addChild(*current, dir);
+void display_subtree(int idx, int level)
+{
+
+    for (int i = 0; i < level * INDENT_STEP; i++)
+        putchar(' ');
+
+    printf("|-- %s%s\n", names[idx], is_directory[idx] ? "/" : "");
+
+    for (int child = 0; child < node_count; child++)
+    {
+        if (adj[idx][child])
+        {
+            display_subtree(child, level + 1);
         }
     }
-     
-    else if (strcmp(command, "create") == 0) {
-        if (*current == NULL) {
-            printf("Error: No root directory exists. Create one with 'mkdir' first.\n");
-        } else {
-            Node *file = createNode(argument, 1, *current);
-            addChild(*current, file);
+}
+
+int main()
+{
+
+    strncpy(names[0], "root", NAME_LEN);
+    is_directory[0] = 1;
+    node_count = 1;
+    memset(adj, 0, sizeof(adj));
+
+    while (1)
+    {
+        printf("\n1. Create Directory\n");
+        printf("2. Create File\n");
+        printf("3. Display Tree\n");
+        printf("4. Exit\n");
+        printf("Enter choice: ");
+
+        int choice;
+        if (scanf("%d", &choice) != 1)
+            break;
+
+        if (choice == 4)
+        {
+            break;
         }
-    }
-     
-    else if (strcmp(command, "cd") == 0) {
-        if (*current == NULL) {
-            printf("Error: No root directory exists. Create one with 'mkdir' first.\n");
-        } else {
-            if (strcmp(argument, "..") == 0) {
-                if ((*current)->parent != NULL)
-                    *current = (*current)->parent;
+        else if (choice == 1 || choice == 2)
+        {
+            char parent_name[NAME_LEN], new_name[NAME_LEN];
+            printf("Enter parent directory name: ");
+            scanf("%s", parent_name);
+            printf("Enter new %s name: ",
+                   (choice == 1) ? "directory" : "file");
+            scanf("%s", new_name);
+
+            int pidx = find_index(parent_name);
+            if (pidx < 0 || !is_directory[pidx])
+            {
+                printf("Error: parent directory '%s' not found.\n",
+                       parent_name);
+            }
+            else
+            {
+
+                if (find_index(new_name) >= 0)
+                {
+                    printf("Error: a node named '%s' already exists.\n",
+                           new_name);
+                }
                 else
-                    printf("Already at root directory.\n");
-            } else {
-                Node *nextDir = findChild(*current, argument);
-                if (nextDir)
-                    *current = nextDir;
-                else
-                    printf("Directory %s not found in current directory.\n", argument);
+                {
+                    add_node(pidx, new_name, (choice == 1));
+                    printf("%s '%s' created under '%s'.\n",
+                           (choice == 1) ? "Directory" : "File",
+                           new_name, parent_name);
+                }
             }
         }
-    }
-    else if (strcmp(command, "pwd") == 0) {
-        printf("Current path: ");
-        printPath(*current);
-        printf("\n");
-    }
-    else {
-        printf("Unknown command: %s\n", command);
-    }
-}
-
-int main() {
-    char input[MAX_INPUT];
-    char command[MAX_NAME], argument[MAX_NAME];
-    Node *root = NULL;
-    Node *current = NULL;
-    
-    printf("Simple File System Shell\n");
-    printf("Available commands: mkdir, create, cd, pwd, ls, exit\n");
-    
-    while (1) {
-        printPath(current);
-
-        if (!fgets(input, sizeof(input), stdin)) break;
-         
-        input[strcspn(input, "\n")] = '\0';
-
-         
-        if (strcmp(input, "exit") == 0)
-            break;
-        
-         
-        if (sscanf(input, "%s %s", command, argument) < 1) {
-            strcpy(command, input);
-            argument[0] = '\0';  
+        else if (choice == 3)
+        {
+            printf("\nCurrent File Tree:\n");
+            display_subtree(0, 0);
         }
-        
-        processCommand(command, argument, &root, &current);
+        else
+        {
+            printf("Invalid choice. Try again.\n");
+        }
     }
-    
-     
-    if (root != NULL) {
-        printf("\nFile Structure:\n");
-        printTree(root, 0);
-    } else {
-        printf("No file system created.\n");
-    }
-    
-     
-    freeTree(root);
+
+    printf("Exiting.\n");
     return 0;
 }

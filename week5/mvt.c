@@ -13,7 +13,6 @@ int main() {
         printf("\nEnter memory required for process %d (in Bytes) -- ", i + 1);
         int mem_req;
         scanf("%d", &mem_req);
-         
         if (mem_req < 0) {
             printf("Memory request cannot be negative. Please enter a valid value.\n");
             i--;  

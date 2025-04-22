@@ -19,7 +19,6 @@ int main()
     int wt[n];
     int tat[n];
 
-    // Calculate completion time
     completionTime[0] = arrivalTime[0] + burstTime[0];
     for (int i = 1; i < n; i++)
     {
@@ -29,7 +28,6 @@ int main()
             completionTime[i] = completionTime[i - 1] + burstTime[i];
     }
 
-    // Calculate waiting and turnaround times
     for (int i = 0; i < n; i++)
     {
         tat[i] = completionTime[i] - arrivalTime[i];
